@@ -1,87 +1,251 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Modal Deepfake Detection</title>
+    <title>Deepfake Forensic Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
-        .drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background-color: #eff6ff; }
-        #progress-bar { transition: width 0.3s ease; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #0f172a; color: #e2e8f0; }
+
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(71, 85, 105, 0.4); }
+        .glass-light { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(71, 85, 105, 0.3); }
+
+        .drop-zone { border: 2px dashed #475569; transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+
+        /* Animated ring gauge */
+        .ring-gauge { position: relative; width: 200px; height: 200px; }
+        .ring-gauge svg { transform: rotate(-90deg); }
+        .ring-gauge .track { stroke: #1e293b; fill: none; stroke-width: 12; }
+        .ring-gauge .fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1.5s ease, stroke 0.5s ease; }
+        .ring-gauge .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Animated score bars */
+        .score-bar-fill { transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+
+        /* Face overlay canvas */
+        .face-canvas-wrap { position: relative; display: inline-block; }
+        .face-canvas-wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* Glow effects */
+        .glow-red { box-shadow: 0 0 30px rgba(239,68,68,0.15); }
+        .glow-green { box-shadow: 0 0 30px rgba(16,185,129,0.15); }
+        .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.1); }
+
+        .fade-in { animation: fadeIn 0.6s ease forwards; opacity: 0; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .slide-up { animation: slideUp 0.5s ease forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* Preview thumbnail */
+        #previewThumb { max-height: 120px; border-radius: 8px; object-fit: cover; }
+
+        /* Hide scrollbar on forensic images */
+        .forensic-img { border-radius: 8px; width: 100%; height: auto; image-rendering: auto; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-12 px-4">
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
 
     <!-- Header -->
-    <header class="text-center mb-10 w-full max-w-3xl">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight mb-4">
-            Deepfake <span class="text-blue-600">Detection</span> API
+    <header class="text-center mb-8 w-full max-w-4xl fade-in">
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">
+            <i class="fa-solid fa-shield-halved text-indigo-400 mr-2"></i>
+            Deepfake <span class="text-indigo-400">Forensic</span> Dashboard
         </h1>
-        <p class="text-slate-500 text-lg">
-            AI-powered forensic analysis to detect synthetic media. Upload an image, audio, or video for multi-modal analysis.
-        </p>
+        <p class="text-slate-400 text-sm">AI-powered multi-modal analysis &middot; Vision &middot; Audio &middot; Cross-Modal Fusion</p>
     </header>
 
-    <main class="w-full max-w-2xl">
-        
-        <!-- API Configuration -->
-        <div class="glass rounded-2xl p-6 shadow-sm border border-slate-200 mb-6">
-            <label for="apiUrl" class="block text-sm font-semibold text-slate-700 mb-2">Backend API URL (Colab / Ngrok):</label>
+    <main class="w-full max-w-4xl space-y-6">
+
+        <!-- API URL Config -->
+        <div class="glass rounded-xl p-4">
+            <label for="apiUrl" class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Backend API URL</label>
             <div class="flex gap-2">
-                <span class="inline-flex items-center px-3 text-sm text-slate-500 bg-slate-100 border border-r-0 border-slate-300 rounded-l-md">
+                <span class="inline-flex items-center px-3 text-sm text-slate-400 bg-slate-800/60 border border-slate-600 rounded-l-lg">
                     <i class="fa-solid fa-link"></i>
                 </span>
-                <input type="url" id="apiUrl" value="https://upside-shower-handling.ngrok-free.dev" class="rounded-none rounded-r-lg bg-white border border-slate-300 text-slate-900 block flex-1 min-w-0 w-full text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="https://your-ngrok-url.ngrok-free.dev">
+                <input type="url" id="apiUrl" value="https://upside-shower-handling.ngrok-free.dev"
+                    class="rounded-r-lg bg-slate-800/60 border border-slate-600 text-slate-200 block flex-1 min-w-0 w-full text-sm p-2.5 focus:ring-indigo-500 focus:border-indigo-500 outline-none placeholder-slate-500"
+                    placeholder="https://your-ngrok-url.ngrok-free.dev">
             </div>
         </div>
 
         <!-- Upload Zone -->
-        <div class="glass rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div id="dropZone" class="drop-zone p-12 text-center cursor-pointer m-6 rounded-xl bg-slate-50">
+        <div class="glass rounded-xl overflow-hidden">
+            <div id="dropZone" class="drop-zone p-10 text-center cursor-pointer m-4 rounded-xl bg-slate-800/30">
                 <input type="file" id="fileInput" class="hidden" accept="image/*,video/*,audio/*">
-                <i class="fa-solid fa-cloud-arrow-up text-5xl text-blue-500 mb-4"></i>
-                <h3 class="text-xl font-bold text-slate-700 mb-2">Click or drag media here</h3>
-                <p class="text-slate-500 text-sm">Supports MP4, MP3, JPG, PNG, WEBP (Max 15MB)</p>
+                <div id="uploadPrompt">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 mb-3"></i>
+                    <h3 class="text-lg font-bold text-slate-300 mb-1">Drop media here or click to browse</h3>
+                    <p class="text-slate-500 text-xs">Supports MP4, MP3, JPG, PNG, WEBP &middot; Max 50MB</p>
+                </div>
+                <div id="uploadPreview" class="hidden items-center gap-4 justify-center">
+                    <img id="previewThumb" src="" alt="preview" class="hidden">
+                    <div class="text-left">
+                        <div id="previewName" class="text-sm font-semibold text-slate-200"></div>
+                        <div id="previewSize" class="text-xs text-slate-400"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Results / Loading Section -->
-        <div id="resultContainer" class="hidden glass rounded-2xl p-8 shadow-sm border border-slate-200 text-center transition-all">
-            
-            <!-- Loading State -->
-            <div id="loadingState" class="hidden">
-                <h3 class="text-xl font-bold text-slate-700 mb-4" id="loadingText">Uploading media...</h3>
-                <div class="w-full bg-slate-200 rounded-full h-2.5 mb-2 overflow-hidden">
-                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 10%"></div>
+        <!-- Loading State -->
+        <div id="loadingContainer" class="hidden glass rounded-xl p-8 text-center slide-up">
+            <div class="inline-block mb-4">
+                <div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <h3 id="loadingText" class="text-lg font-bold text-slate-200 mb-2">Uploading media...</h3>
+            <div class="w-full max-w-md mx-auto bg-slate-700/50 rounded-full h-2 mb-2 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full score-bar-fill" style="width: 10%"></div>
+            </div>
+            <p id="loadingSubtext" class="text-slate-400 text-xs">Connecting to backend</p>
+        </div>
+
+        <!-- ==================== RESULTS DASHBOARD ==================== -->
+        <div id="resultsDashboard" class="hidden space-y-6">
+
+            <!-- Row 1: Verdict Ring + Score Bars -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Verdict Ring -->
+                <div id="verdictCard" class="glass rounded-xl p-6 flex flex-col items-center justify-center slide-up">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-4">Overall Verdict</div>
+                    <div class="ring-gauge mb-4">
+                        <svg viewBox="0 0 200 200" width="200" height="200">
+                            <circle class="track" cx="100" cy="100" r="85"/>
+                            <circle id="ringFill" class="fill" cx="100" cy="100" r="85"
+                                stroke-dasharray="534" stroke-dashoffset="534" stroke="#6366f1"/>
+                        </svg>
+                        <div class="label">
+                            <div id="verdictPercent" class="text-4xl font-black">--%</div>
+                            <div id="verdictTag" class="text-sm font-bold uppercase tracking-wider mt-1">Analyzing</div>
+                        </div>
+                    </div>
+                    <div id="verdictLabel" class="text-sm text-slate-400 font-medium text-center"></div>
                 </div>
-                <p id="loadingSubtext" class="text-slate-500 text-sm">Connecting to backend</p>
+
+                <!-- Score Breakdown Bars -->
+                <div class="glass rounded-xl p-6 flex flex-col justify-center slide-up" style="animation-delay:0.1s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-5">Forensic Breakdown</div>
+
+                    <!-- Visual -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-eye text-indigo-400 mr-1.5"></i>Visual Manipulation</span>
+                            <span id="barVisualLabel" class="text-sm font-bold text-indigo-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barVisual" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-indigo-500 to-purple-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-waveform text-cyan-400 mr-1.5"></i>Audio Forgery</span>
+                            <span id="barAudioLabel" class="text-sm font-bold text-cyan-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barAudio" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-cyan-500 to-blue-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lip Sync -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-lips text-amber-400 mr-1.5"></i>Lip-Sync Coherence</span>
+                            <span id="barLipLabel" class="text-sm font-bold text-amber-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barLip" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-amber-500 to-orange-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Biomarkers -->
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div class="text-xs text-slate-500 mb-1">Spectral Flatness</div>
+                            <div id="valFlatness" class="text-lg font-bold text-slate-200">--</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div class="text-xs text-slate-500 mb-1">Phase Consistency</div>
+                            <div id="valPhase" class="text-lg font-bold text-slate-200">--</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Final Result State -->
-            <div id="resultState" class="hidden">
-                <h2 class="text-sm uppercase tracking-widest font-bold text-slate-400 mb-2">Final Verdict</h2>
-                <div id="verdictScore" class="text-6xl font-black text-slate-800 mb-1">--%</div>
-                <div id="verdictLabel" class="text-xl font-medium text-slate-600 mb-8 pb-8 border-b border-slate-100">--</div>
-                
-                <h3 class="text-sm font-semibold text-slate-500 mb-4 uppercase">Forensic Breakdown</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <i class="fa-solid fa-eye text-2xl text-indigo-400 mb-2"></i>
-                        <div class="text-sm text-slate-500 mb-1">Visual Manipulation</div>
-                        <div id="scoreVision" class="text-2xl font-bold text-slate-700">--</div>
+            <!-- Row 2: Uploaded Image with Face Boxes + ELA Heatmap -->
+            <div id="visionRow" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Uploaded Image with Face Annotations -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.2s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-crosshairs text-indigo-400 mr-1"></i> Face Detection
                     </div>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <i class="fa-solid fa-music text-2xl text-emerald-400 mb-2"></i>
-                        <div class="text-sm text-slate-500 mb-1">Audio Forgery</div>
-                        <div id="scoreAudio" class="text-2xl font-bold text-slate-700">--</div>
+                    <div class="face-canvas-wrap w-full">
+                        <img id="uploadedImg" src="" alt="uploaded" class="forensic-img hidden">
+                        <canvas id="faceCanvas"></canvas>
                     </div>
+                    <div id="faceList" class="mt-3 space-y-1"></div>
+                </div>
+
+                <!-- ELA Heatmap -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.25s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-fire text-red-400 mr-1"></i> ELA Heatmap
+                        <span class="text-slate-600 font-normal ml-1">(Error Level Analysis)</span>
+                    </div>
+                    <img id="heatmapImg" src="" alt="heatmap" class="forensic-img hidden">
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Bright regions indicate areas with different compression levels — a sign of editing.</p>
                 </div>
             </div>
 
+            <!-- Row 3: FFT + Spectrogram -->
+            <div id="analysisRow" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- FFT -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.3s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-wave-square text-purple-400 mr-1"></i> FFT Frequency Spectrum
+                    </div>
+                    <img id="fftImg" src="" alt="fft" class="forensic-img hidden">
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Frequency artifacts reveal GAN-generated image patterns invisible to the eye.</p>
+                </div>
+
+                <!-- Audio Spectrogram -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.35s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-signal text-cyan-400 mr-1"></i> Audio Spectrogram
+                    </div>
+                    <img id="spectrogramImg" src="" alt="spectrogram" class="forensic-img hidden">
+                    <p id="spectrogramPlaceholder" class="text-sm text-slate-500 text-center py-8 hidden">
+                        <i class="fa-solid fa-volume-xmark text-2xl mb-2 block text-slate-600"></i>
+                        No audio track detected
+                    </p>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Mel-scaled spectrogram reveals unnatural vocal patterns in cloned speech.</p>
+                </div>
+            </div>
+
+            <!-- Row 4: Video Timeline (only for videos) -->
+            <div id="timelineRow" class="hidden glass rounded-xl p-4 slide-up" style="animation-delay:0.4s">
+                <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                    <i class="fa-solid fa-timeline text-emerald-400 mr-1"></i> Frame-by-Frame Analysis
+                </div>
+                <canvas id="timelineChart" height="100"></canvas>
+                <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Per-second fake probability across the video. Spikes indicate manipulated segments.</p>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="text-center pt-2 pb-8">
+                <button onclick="resetUI()" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold transition">
+                    <i class="fa-solid fa-rotate-left mr-1.5"></i> Analyze Another File
+                </button>
+            </div>
         </div>
     </main>
 
@@ -89,62 +253,68 @@
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const apiUrlInput = document.getElementById('apiUrl');
-        
-        const resultContainer = document.getElementById('resultContainer');
-        const loadingState = document.getElementById('loadingState');
-        const resultState = document.getElementById('resultState');
-        
-        const progressBar = document.getElementById('progressBar');
-        const loadingText = document.getElementById('loadingText');
-        const loadingSubtext = document.getElementById('loadingSubtext');
+        let uploadedFileObjectURL = null;
 
-        // Drag and Drop handlers
+        // Drag & Drop
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                processFile(fileInput.files[0]);
-            }
+            if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; processFile(fileInput.files[0]); }
         });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) processFile(e.target.files[0]);
-        });
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) processFile(e.target.files[0]); });
 
         async function processFile(file) {
             let apiUrl = apiUrlInput.value.trim();
             if (!apiUrl.startsWith('http')) apiUrl = 'https://' + apiUrl;
             if (apiUrl.endsWith('/')) apiUrl = apiUrl.slice(0, -1);
-            
-            // Show loading UI
-            resultContainer.classList.remove('hidden');
-            loadingState.classList.remove('hidden');
-            resultState.classList.add('hidden');
-            progressBar.style.width = '10%';
-            loadingText.textContent = 'Uploading to API...';
-            loadingSubtext.textContent = file.name;
+
+            // Show preview
+            uploadedFileObjectURL = URL.createObjectURL(file);
+            const isImage = file.type.startsWith('image/');
+            if (isImage) {
+                document.getElementById('previewThumb').src = uploadedFileObjectURL;
+                document.getElementById('previewThumb').classList.remove('hidden');
+            } else {
+                document.getElementById('previewThumb').classList.add('hidden');
+            }
+            document.getElementById('previewName').textContent = file.name;
+            document.getElementById('previewSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('uploadPreview').classList.remove('hidden');
+            document.getElementById('uploadPreview').classList.add('flex');
+
+            // Show loading
+            document.getElementById('loadingContainer').classList.remove('hidden');
+            document.getElementById('resultsDashboard').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '10%';
+            document.getElementById('loadingText').textContent = 'Uploading media...';
+            document.getElementById('loadingSubtext').textContent = file.name;
 
             const fd = new FormData();
             fd.append('file', file);
 
             try {
+                document.getElementById('progressBar').style.width = '30%';
+                document.getElementById('loadingText').textContent = 'Running AI inference...';
+                document.getElementById('loadingSubtext').textContent = 'This may take 30-60 seconds on free Colab';
+
                 const response = await fetch(apiUrl + '/detect', {
                     method: 'POST',
-                    headers: {'ngrok-skip-browser-warning': 'true'},
+                    headers: { 'ngrok-skip-browser-warning': 'true' },
                     body: fd
                 });
+
+                document.getElementById('progressBar').style.width = '90%';
                 const data = await response.json();
+                document.getElementById('progressBar').style.width = '100%';
 
                 if (data.task_id) {
-                    // Start Polling Celery
                     pollTask(apiUrl, data.task_id);
                 } else {
-                    // Fallback to sync result
-                    showResult(data);
+                    setTimeout(() => showResult(data, file), 300);
                 }
             } catch (err) {
                 showError("Connection Failed. Check your Ngrok URL or ensure the Colab cell is running.");
@@ -154,66 +324,238 @@
         function pollTask(apiUrl, taskId) {
             let interval = setInterval(async () => {
                 try {
-                    const res = await fetch(apiUrl + '/status/' + taskId, {
-                        headers: {'ngrok-skip-browser-warning': 'true'}
-                    });
+                    const res = await fetch(apiUrl + '/status/' + taskId, { headers: { 'ngrok-skip-browser-warning': 'true' } });
                     const data = await res.json();
-                    
-                    if (data.state === 'SUCCESS' || data.result) {
-                        clearInterval(interval);
-                        showResult(data.result);
-                    } else if (data.state === 'FAILURE') {
-                        clearInterval(interval);
-                        showError("Analysis Failed on the backend.");
-                    } else if (data.state === 'PROGRESS' && data.status) {
-                        loadingText.textContent = 'Processing Media...';
-                        progressBar.style.width = data.status.progress + '%';
-                        loadingSubtext.textContent = data.status.step || 'Running AI inference';
+                    if (data.state === 'SUCCESS' || data.result) { clearInterval(interval); showResult(data.result, null); }
+                    else if (data.state === 'FAILURE') { clearInterval(interval); showError("Backend analysis failed."); }
+                    else if (data.state === 'PROGRESS' && data.status) {
+                        document.getElementById('progressBar').style.width = data.status.progress + '%';
+                        document.getElementById('loadingSubtext').textContent = data.status.step || 'Processing...';
                     }
-                } catch (err) {
-                    console.error(err);
-                }
+                } catch (err) { console.error(err); }
             }, 2000);
         }
 
-        function showResult(result) {
-            loadingState.classList.add('hidden');
-            resultState.classList.remove('hidden');
+        function showResult(result, file) {
+            document.getElementById('loadingContainer').classList.add('hidden');
+            document.getElementById('resultsDashboard').classList.remove('hidden');
 
-            const score = result.confidence !== undefined ? result.confidence : result.fusion_score;
+            const score = result.confidence !== undefined ? result.confidence : 0;
             const isFake = score > 0.5;
             const percent = (score * 100).toFixed(1);
+            const color = isFake ? '#ef4444' : '#10b981';
+            const colorName = isFake ? 'red' : 'green';
 
-            document.getElementById('verdictScore').textContent = percent + '%';
-            document.getElementById('verdictScore').style.color = isFake ? '#ef4444' : '#10b981'; // Red or Green
-            
-            document.getElementById('verdictLabel').textContent = isFake ? 'Synthetic Media Detected' : 'Authentic Media Verified';
-            document.getElementById('verdictLabel').style.color = isFake ? '#ef4444' : '#10b981';
+            // --- Verdict Ring ---
+            const ring = document.getElementById('ringFill');
+            const circumference = 2 * Math.PI * 85; // ~534
+            ring.style.stroke = color;
+            ring.setAttribute('stroke-dashoffset', circumference - (circumference * score));
 
-            // Visual Score breakdown
-            let vScore = 'N/A';
-            if (result.breakdown && result.breakdown.visual_score !== null) vScore = (result.breakdown.visual_score * 100).toFixed(1) + '%';
-            else if (result.vision_fake_probability !== undefined && result.vision_fake_probability !== null) vScore = (result.vision_fake_probability * 100).toFixed(1) + '%';
-            document.getElementById('scoreVision').textContent = vScore;
+            document.getElementById('verdictPercent').textContent = percent + '%';
+            document.getElementById('verdictPercent').style.color = color;
+            document.getElementById('verdictTag').textContent = isFake ? 'FAKE' : 'REAL';
+            document.getElementById('verdictTag').style.color = color;
+            document.getElementById('verdictLabel').textContent = isFake ? 'Synthetic media detected — likely AI-generated or manipulated' : 'No signs of manipulation — media appears authentic';
 
-            // Audio Score breakdown
-            let aScore = 'N/A';
-            if (result.breakdown && result.breakdown.audio_score !== null) aScore = (result.breakdown.audio_score * 100).toFixed(1) + '%';
-            else if (result.audio_fake_probability !== undefined && result.audio_fake_probability !== null) aScore = (result.audio_fake_probability * 100).toFixed(1) + '%';
-            document.getElementById('scoreAudio').textContent = aScore;
+            const card = document.getElementById('verdictCard');
+            card.classList.remove('glow-red', 'glow-green');
+            card.classList.add(isFake ? 'glow-red' : 'glow-green');
+
+            // --- Score Bars ---
+            const vScore = result.breakdown?.visual_score ?? 0;
+            const aScore = result.breakdown?.audio_score ?? 0;
+            const lScore = result.breakdown?.lip_sync_score ?? 0;
+
+            animateBar('barVisual', 'barVisualLabel', vScore, 'indigo');
+            animateBar('barAudio', 'barAudioLabel', aScore, 'cyan');
+            animateBar('barLip', 'barLipLabel', lScore, 'amber');
+
+            // --- Audio Biomarkers ---
+            document.getElementById('valFlatness').textContent = result.audio_flatness != null ? result.audio_flatness.toFixed(4) : 'N/A';
+            document.getElementById('valPhase').textContent = result.audio_phase != null ? result.audio_phase.toFixed(2) : 'N/A';
+
+            // --- ELA Heatmap ---
+            const hasHeatmap = result.heatmap && result.heatmap.length > 100;
+            const hasFft = result.fft && result.fft.length > 100;
+            const hasSpec = result.spectrogram && result.spectrogram.length > 100;
+            const hasFaces = result.faces && result.faces.length > 0;
+
+            if (hasHeatmap || hasFft || hasFaces) {
+                document.getElementById('visionRow').classList.remove('hidden');
+                document.getElementById('visionRow').classList.add('grid');
+            }
+
+            if (hasHeatmap) {
+                const heatImg = document.getElementById('heatmapImg');
+                heatImg.src = 'data:image/png;base64,' + result.heatmap;
+                heatImg.classList.remove('hidden');
+            }
+
+            // --- FFT ---
+            if (hasFft || hasSpec) {
+                document.getElementById('analysisRow').classList.remove('hidden');
+                document.getElementById('analysisRow').classList.add('grid');
+            }
+
+            if (hasFft) {
+                const fftImg = document.getElementById('fftImg');
+                fftImg.src = 'data:image/png;base64,' + result.fft;
+                fftImg.classList.remove('hidden');
+            }
+
+            // --- Spectrogram ---
+            if (hasSpec) {
+                const specImg = document.getElementById('spectrogramImg');
+                specImg.src = 'data:image/png;base64,' + result.spectrogram;
+                specImg.classList.remove('hidden');
+            } else {
+                document.getElementById('spectrogramPlaceholder').classList.remove('hidden');
+            }
+
+            // --- Face Detection Overlay ---
+            if (file && file.type.startsWith('image/') && uploadedFileObjectURL) {
+                const upImg = document.getElementById('uploadedImg');
+                upImg.src = uploadedFileObjectURL;
+                upImg.classList.remove('hidden');
+                upImg.onload = () => drawFaces(upImg, result.faces || []);
+            } else if (hasHeatmap) {
+                // If video, just show heatmap in both slots
+                const upImg = document.getElementById('uploadedImg');
+                upImg.src = 'data:image/png;base64,' + result.heatmap;
+                upImg.classList.remove('hidden');
+            }
+
+            // --- Face List ---
+            const faceList = document.getElementById('faceList');
+            faceList.innerHTML = '';
+            if (hasFaces) {
+                result.faces.forEach((f, i) => {
+                    const fakeProb = (f.score * 100).toFixed(1);
+                    const fColor = f.score > 0.5 ? 'text-red-400' : 'text-emerald-400';
+                    const fBg = f.score > 0.5 ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20';
+                    faceList.innerHTML += `
+                        <div class="flex items-center justify-between ${fBg} border rounded-lg px-3 py-2">
+                            <span class="text-xs font-semibold text-slate-300"><i class="fa-solid fa-face-viewfinder ${fColor} mr-1.5"></i>Face ${i + 1}</span>
+                            <span class="text-xs font-bold ${fColor}">${fakeProb}% ${f.score > 0.5 ? 'FAKE' : 'REAL'}</span>
+                        </div>`;
+                });
+            }
+
+            // --- Timeline Chart (videos) ---
+            if (result.timeline && result.timeline.length > 1) {
+                document.getElementById('timelineRow').classList.remove('hidden');
+                drawTimeline(result.timeline);
+            }
+        }
+
+        function animateBar(barId, labelId, score, colorName) {
+            const pct = (score * 100).toFixed(1);
+            setTimeout(() => {
+                document.getElementById(barId).style.width = pct + '%';
+                document.getElementById(labelId).textContent = pct + '%';
+                document.getElementById(labelId).style.color = score > 0.5 ? '#ef4444' : '#10b981';
+            }, 200);
+        }
+
+        function drawFaces(img, faces) {
+            const canvas = document.getElementById('faceCanvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            faces.forEach((f, i) => {
+                const [x, y, w, h] = f.bounding_box;
+                const isFakeFace = f.score > 0.5;
+                ctx.strokeStyle = isFakeFace ? '#ef4444' : '#10b981';
+                ctx.lineWidth = Math.max(3, img.naturalWidth * 0.004);
+                ctx.setLineDash([]);
+                ctx.strokeRect(x, y, w, h);
+
+                // Label background
+                const label = `Face ${i+1}: ${(f.score*100).toFixed(0)}%`;
+                ctx.font = `bold ${Math.max(14, img.naturalWidth * 0.025)}px Inter, sans-serif`;
+                const tm = ctx.measureText(label);
+                const lh = Math.max(20, img.naturalWidth * 0.035);
+                ctx.fillStyle = isFakeFace ? 'rgba(239,68,68,0.85)' : 'rgba(16,185,129,0.85)';
+                ctx.fillRect(x, y - lh - 4, tm.width + 12, lh + 4);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(label, x + 6, y - 8);
+            });
+        }
+
+        let timelineChartInstance = null;
+        function drawTimeline(data) {
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+            if (timelineChartInstance) timelineChartInstance.destroy();
+            timelineChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i + 's'),
+                    datasets: [{
+                        label: 'Fake Probability',
+                        data: data.map(v => (v * 100).toFixed(1)),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99,102,241,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: data.map(v => v > 0.5 ? '#ef4444' : '#10b981'),
+                    }, {
+                        label: 'Threshold (50%)',
+                        data: data.map(() => 50),
+                        borderColor: 'rgba(239,68,68,0.4)',
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(71,85,105,0.2)' } },
+                        y: { min: 0, max: 100, ticks: { color: '#64748b', callback: v => v + '%' }, grid: { color: 'rgba(71,85,105,0.2)' } }
+                    }
+                }
+            });
         }
 
         function showError(msg) {
-            loadingState.classList.add('hidden');
-            resultState.classList.remove('hidden');
-            
-            document.getElementById('verdictScore').textContent = 'ERROR';
-            document.getElementById('verdictScore').style.color = '#64748b';
+            document.getElementById('loadingContainer').classList.add('hidden');
+            document.getElementById('resultsDashboard').classList.remove('hidden');
+            const ring = document.getElementById('ringFill');
+            ring.setAttribute('stroke-dashoffset', '534');
+            ring.style.stroke = '#64748b';
+            document.getElementById('verdictPercent').textContent = 'ERROR';
+            document.getElementById('verdictPercent').style.color = '#64748b';
+            document.getElementById('verdictTag').textContent = '';
             document.getElementById('verdictLabel').textContent = msg;
-            document.getElementById('verdictLabel').style.color = '#64748b';
-            
-            document.getElementById('scoreVision').textContent = '--';
-            document.getElementById('scoreAudio').textContent = '--';
+        }
+
+        function resetUI() {
+            document.getElementById('resultsDashboard').classList.add('hidden');
+            document.getElementById('loadingContainer').classList.add('hidden');
+            document.getElementById('visionRow').classList.add('hidden');
+            document.getElementById('analysisRow').classList.add('hidden');
+            document.getElementById('timelineRow').classList.add('hidden');
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('uploadPreview').classList.add('hidden');
+            document.getElementById('heatmapImg').classList.add('hidden');
+            document.getElementById('fftImg').classList.add('hidden');
+            document.getElementById('spectrogramImg').classList.add('hidden');
+            document.getElementById('spectrogramPlaceholder').classList.add('hidden');
+            document.getElementById('uploadedImg').classList.add('hidden');
+            document.getElementById('faceList').innerHTML = '';
+            document.getElementById('barVisual').style.width = '0%';
+            document.getElementById('barAudio').style.width = '0%';
+            document.getElementById('barLip').style.width = '0%';
+            if (uploadedFileObjectURL) { URL.revokeObjectURL(uploadedFileObjectURL); uploadedFileObjectURL = null; }
+            fileInput.value = '';
         }
     </script>
 </body>
