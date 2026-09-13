@@ -28,13 +28,19 @@ class AudioModel:
         self.processor = None
         
         import os
-        if os.path.exists(onnx_path):
+        if os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 1024 * 1024:
             print(f"Loading Audio Model from ONNX: {onnx_path}")
             try:
                 import onnxruntime
-                self.onnx_session = onnxruntime.InferenceSession(onnx_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+                available_providers = onnxruntime.get_available_providers()
+                providers = [p for p in ['CUDAExecutionProvider', 'CPUExecutionProvider'] if p in available_providers]
+                self.onnx_session = onnxruntime.InferenceSession(onnx_path, providers=providers)
             except ImportError:
                 print("onnxruntime not installed, falling back to PyTorch")
+            except Exception as e:
+                print(f"Warning: Failed to load ONNX model ({e}), falling back to PyTorch")
+        elif os.path.exists(onnx_path):
+            print(f"Warning: {onnx_path} appears to be a Git LFS pointer (too small). Skipping ONNX, falling back to PyTorch.")
 
         print(f"Loading Audio Model Feature Extractor: {model_id}...")
         try:
