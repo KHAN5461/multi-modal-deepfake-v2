@@ -55,6 +55,36 @@ dropzone_html = '''
                 body: fd
             });
             const data = await r.json();
+            if (data.task_id) {
+                // Begin Long Polling
+                const taskId = data.task_id;
+                let pollInterval = setInterval(async () => {
+                    const statusRes = await fetch('https://upside-shower-handling.ngrok-free.dev/status/' + taskId, {
+                        headers: {'ngrok-skip-browser-warning': 'true'}
+                    });
+                    const statusData = await statusRes.json();
+                    
+                    if (statusData.state === 'SUCCESS' || statusData.result) {
+                        clearInterval(pollInterval);
+                        const result = statusData.result;
+                        const fusion = (result.confidence * 100).toFixed(1);
+                        document.getElementById('customScore').textContent = fusion + '%';
+                        document.getElementById('customScore').style.color = fusion > 50 ? '#e53e3e' : '#38a169';
+                        document.getElementById('customVerdict').textContent = result.is_fake ? 'Synthetic Deepfake' : 'Authentic Media';
+                        document.getElementById('customVit').textContent = result.breakdown.visual_score ? (result.breakdown.visual_score * 100).toFixed(1) + '%' : 'N/A';
+                        document.getElementById('customAudio').textContent = result.breakdown.audio_score ? (result.breakdown.audio_score * 100).toFixed(1) + '%' : 'N/A';
+                    } else if (statusData.state === 'FAILURE') {
+                        clearInterval(pollInterval);
+                        document.getElementById('customScore').textContent = 'Error';
+                        document.getElementById('customVerdict').textContent = 'Processing Failed';
+                    } else if (statusData.state === 'PROGRESS' && statusData.status) {
+                        document.getElementById('customVerdict').textContent = statusData.status.step || 'Processing...';
+                        document.getElementById('customScore').textContent = statusData.status.progress + '%';
+                    }
+                }, 2000);
+                return;
+            }
+
             const fusion = (data.fusion_score * 100).toFixed(1);
             document.getElementById('customScore').textContent = fusion + '%';
             document.getElementById('customScore').style.color = fusion > 50 ? '#e53e3e' : '#38a169';
