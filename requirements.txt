@@ -15,3 +15,5 @@ redis
 ffmpeg-python
 onnxruntime
 matplotlib
+
+facenet-pytorch
