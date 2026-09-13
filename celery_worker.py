@@ -1,9 +1,13 @@
-﻿from celery import Celery
+﻿import os
+from celery import Celery
+
+broker_url = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+backend_url = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
 celery_app = Celery(
     "deepfake_worker",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0"
+    broker=broker_url,
+    backend=backend_url
 )
 
 @celery_app.task(bind=True)
@@ -14,6 +18,7 @@ def process_multimodal_video(self, video_path: str):
     
     self.update_state(state="PROGRESS", meta={"step": "Computing cross-attention synchronization", "progress": 90})
     
+    # In production, actual inference happens here.
     return {
         "is_fake": True,
         "confidence": 0.94,
