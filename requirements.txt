@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+transformers
+torch
+torchaudio
+torchvision
+librosa
+opencv-python-headless
+soundfile
+optimum[onnxruntime]
+
+celery
+redis
+ffmpeg-python
+onnxruntime
+matplotlib
