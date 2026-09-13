@@ -117,6 +117,7 @@
 
         async function processFile(file) {
             let apiUrl = apiUrlInput.value.trim();
+            if (!apiUrl.startsWith('http')) apiUrl = 'https://' + apiUrl;
             if (apiUrl.endsWith('/')) apiUrl = apiUrl.slice(0, -1);
             
             // Show loading UI
