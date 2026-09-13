@@ -17,3 +17,5 @@ onnxruntime
 matplotlib
 
 facenet-pytorch
+
+uniface[gpu]
