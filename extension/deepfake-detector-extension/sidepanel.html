@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Veritas AI - Browser Extension</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#005f9b",
+            "surface": "#fcf9f9",
+            "primary-fixed-dim": "#b6d7ff",
+            "on-secondary-container": "#005b60",
+            "surface-bright": "#fcf9f9",
+            "on-secondary": "#e6fdff",
+            "on-tertiary": "#e8ffe7",
+            "on-surface-variant": "#5e5f61",
+            "on-surface": "#313234",
+            "background": "#fcf9f9",
+            "on-background": "#313234",
+            "on-tertiary-fixed-variant": "#00662e",
+            "on-primary-container": "#00558b",
+            "on-error": "#fff7f6",
+            "tertiary-fixed-dim": "#33ec7b",
+            "outline-variant": "#b2b1b4",
+            "secondary-container": "#6ff6ff",
+            "inverse-primary": "#44a3f5",
+            "surface-dim": "#dadadc",
+            "surface-container-high": "#e9e8e9",
+            "primary-fixed": "#d0e4ff",
+            "secondary": "#006a6f",
+            "surface-container-lowest": "#ffffff",
+            "error": "#9f403d",
+            "on-primary-fixed": "#00426e",
+            "secondary-dim": "#005d62",
+            "on-secondary-fixed-variant": "#00666b",
+            "secondary-fixed": "#6ff6ff",
+            "inverse-surface": "#0e0e0f",
+            "tertiary": "#006e33",
+            "surface-container-low": "#f5f3f4",
+            "primary-container": "#d0e4ff",
+            "error-dim": "#4e0309",
+            "on-error-container": "#752121",
+            "primary-dim": "#00568c",
+            "tertiary-dim": "#00612b",
+            "surface-variant": "#e3e2e4",
+            "error-container": "#fe8983",
+            "on-tertiary-container": "#005b29",
+            "secondary-fixed-dim": "#00ebf6",
+            "on-tertiary-fixed": "#00461e",
+            "primary": "#00629f",
+            "on-secondary-fixed": "#00474b",
+            "on-primary": "#f5f8ff",
+            "tertiary-fixed": "#49fb87",
+            "surface-container": "#efedef",
+            "inverse-on-surface": "#9e9c9d",
+            "surface-container-highest": "#e3e2e4",
+            "surface-tint": "#00629f",
+            "tertiary-container": "#49fb87",
+            "outline": "#7a7a7d"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "xs": "4px",
+            "md": "16px",
+            "sm": "8px",
+            "margin": "24px",
+            "xl": "32px",
+            "base": "8px",
+            "lg": "24px",
+            "gutter": "16px"
+          },
+          "fontFamily": {
+            "label-md": [
+              "Public Sans"
+            ],
+            "body-md": [
+              "Inter"
+            ],
+            "headline-md": [
+              "Inter"
+            ],
+            "headline-lg": [
+              "Inter"
+            ]
+          },
+          "fontSize": {
+            "label-md": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "fontWeight": "500"
+              }
+            ],
+            "body-md": [
+              "16px",
+              {
+                "lineHeight": "24px",
+                "fontWeight": "400"
+              }
+            ],
+            "headline-md": [
+              "24px",
+              {
+                "lineHeight": "32px",
+                "fontWeight": "600"
+              }
+            ],
+            "headline-lg": [
+              "32px",
+              {
+                "lineHeight": "40px",
+                "fontWeight": "700"
+              }
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+    }
+    body {
+      background-color: #ffffff;
+      color: #313234;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #efedef;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Browser Extension Panel Container (Standard 400px width aesthetic) -->
+<div class="w-full max-w-[420px] min-h-screen bg-surface-container-lowest flex flex-col relative pb-24 select-none">
+<!-- TopAppBar Shared Component Executed -->
+<header class="flex justify-between items-center w-full px-md py-sm sticky top-0 z-50 bg-surface dark:bg-surface shadow-sm">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="verified_user">verified_user</span>
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md tracking-tight text-on-surface dark:text-on-surface">Veritas AI</span>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-[11px] font-medium leading-none">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+            Online
+          </span>
+</div>
+</div>
+<div class="flex items-center">
+<button class="p-1 rounded-full text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container transition-colors duration-150 active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Context & Target Metadata Banner -->
+<div class="px-lg pt-lg pb-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[16px]" data-icon="public">public</span>
+<span class="font-label-md text-label-md font-medium text-on-surface">wire.reuters.com</span>
+</div>
+<div class="flex items-center gap-1 font-label-md text-label-md text-on-surface-variant text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>2 Media Elements</span>
+</div>
+</div>
+</div>
+<!-- Action Section: Floating Pill Button -->
+<div class="px-lg py-sm flex justify-center">
+<button class="group w-full py-3 px-base rounded-full bg-on-surface text-surface-container-lowest font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary transition-all duration-200 shadow-sm active:scale-95">
+<span class="material-symbols-outlined text-[18px] group-hover:rotate-45 transition-transform duration-300" data-icon="radar">radar</span>
+<span class="tracking-wide">Scan Page</span>
+</button>
+</div>
+<!-- Inspection Results Container -->
+<main class="px-lg py-md flex flex-col gap-lg flex-1">
+<!-- Result Card 1: Synthetic Alert -->
+<article class="p-md rounded-xl bg-surface-container-low transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="face">face</span>
+<h2 class="font-headline-md text-[15px] font-semibold text-on-surface leading-snug">Primary Speaker Face</h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-error text-on-error font-label-md text-[11px] font-medium tracking-tight">
+            Synthetic
+          </span>
+</div>
+<div class="mt-md flex items-baseline justify-between">
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">94.2</span>
+<span class="font-label-md text-label-md text-on-surface-variant">%</span>
+</div>
+<span class="font-label-md text-[12px] text-on-surface-variant">00:04:18</span>
+</div>
+<p class="mt-xs font-body-md text-[13px] text-on-surface-variant leading-relaxed">
+          ViT facial boundary anomalies &amp; temporal flicker detected across 32 frames.
+        </p>
+<!-- Micro signal indicator -->
+<div class="mt-3 w-full bg-surface-container-highest rounded-full h-1 overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 94.2%;"></div>
+</div>
+</article>
+<!-- Result Card 2: Authentic Confirmation -->
+<article class="p-md rounded-xl bg-surface-container-low transition-all duration-200 hover:bg-surface-container">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="graphic_eq">graphic_eq</span>
+<h2 class="font-headline-md text-[15px] font-semibold text-on-surface leading-snug">Audio Track</h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary text-on-tertiary font-label-md text-[11px] font-medium tracking-tight">
+            Authentic
+          </span>
+</div>
+<div class="mt-md flex items-baseline justify-between">
+<div class="flex items-baseline gap-1">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">98.6</span>
+<span class="font-label-md text-label-md text-on-surface-variant">%</span>
+</div>
+<span class="font-label-md text-[12px] text-on-surface-variant">Continuous</span>
+</div>
+<p class="mt-xs font-body-md text-[13px] text-on-surface-variant leading-relaxed">
+          Natural acoustic room reverberation verified against vocal tract resonance.
+        </p>
+<!-- Micro signal indicator -->
+<div class="mt-3 w-full bg-surface-container-highest rounded-full h-1 overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 98.6%;"></div>
+</div>
+</article>
+<!-- Waiting / Background Stream State -->
+<section class="mt-sm p-lg rounded-xl border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center">
+<div class="w-24 h-24 flex items-center justify-center mb-sm">
+<img alt="Veritas AI media shield scanning radar" class="w-20 h-20 object-contain pointer-events-none opacity-90" src="https://lh3.googleusercontent.com/aida/AEtjO1WDnEgJ0qC3dTtNXee_yTFtFURRMHrpeEFevIImX6-0kQqhnkbMPeilDg6bpBgcGDOgGluLWIteLeew1L0Yowv5q7ylkb5_2vfuJxW2NsghIdWwNL-_taafVRF77ULNPqIIIs4Y7h-FzcSeFEij7umz2U-nm84cxzBh3fA1NF3CFzLOmF-j_0hNfM_w8T-2R-ROFh4v2w_Y11nST40L9uSOrB79N69zm28zE66DbYCBaY7EtJqT94y8HPGe"/>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Waiting for media stream</p>
+<p class="font-label-md text-[12px] text-on-surface-variant mt-xs">Real-time neural verification activates upon video playback.</p>
+<!-- Ambient Toggle -->
+<div class="mt-md flex items-center gap-base">
+<span class="font-label-md text-[12px] text-on-surface-variant">Auto-inspection</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface-container-lowest after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Shared Component Executed -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-md py-sm bg-surface dark:bg-surface shadow-sm max-w-[420px] left-1/2 -translate-x-1/2">
+<!-- Nav Item 1: Scan (Active) -->
+<button class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
+<span class="material-symbols-outlined text-[20px]" data-icon="radar">radar</span>
+<span class="text-[11px] mt-0.5 font-bold">Scan</span>
+</button>
+<!-- Nav Item 2: History (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
+<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
+<span class="text-[11px] mt-0.5">History</span>
+</button>
+<!-- Nav Item 3: Reports (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
+<span class="material-symbols-outlined text-[20px]" data-icon="shield_with_heart">shield_with_heart</span>
+<span class="text-[11px] mt-0.5">Reports</span>
+</button>
+</nav>
+</div>
+</body></html>
