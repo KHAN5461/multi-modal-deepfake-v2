@@ -53,18 +53,23 @@
 <body class="min-h-screen flex flex-col items-center py-8 px-4">
 
     <!-- Header -->
-    <header class="text-center mb-8 w-full max-w-4xl fade-in">
+    <header class="text-center mb-8 w-full max-w-4xl fade-in relative">
         <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">
             <i class="fa-solid fa-shield-halved text-indigo-400 mr-2"></i>
             Deepfake <span class="text-indigo-400">Forensic</span> Dashboard
         </h1>
         <p class="text-slate-400 text-sm">AI-powered multi-modal analysis &middot; Vision &middot; Audio &middot; Cross-Modal Fusion</p>
+        
+        <!-- Settings Toggle -->
+        <button onclick="document.getElementById('apiConfigPanel').classList.toggle('hidden')" class="absolute top-0 right-0 p-2 text-slate-400 hover:text-indigo-400 transition-colors">
+            <i class="fa-solid fa-gear text-lg"></i>
+        </button>
     </header>
 
     <main class="w-full max-w-4xl space-y-6">
 
-        <!-- API URL Config -->
-        <div class="glass rounded-xl p-4">
+        <!-- API URL Config (Hidden by default) -->
+        <div id="apiConfigPanel" class="hidden glass rounded-xl p-4 slide-up">
             <label for="apiUrl" class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Backend API URL</label>
             <div class="flex gap-2">
                 <span class="inline-flex items-center px-3 text-sm text-slate-400 bg-slate-800/60 border border-slate-600 rounded-l-lg">
@@ -74,6 +79,7 @@
                     class="rounded-r-lg bg-slate-800/60 border border-slate-600 text-slate-200 block flex-1 min-w-0 w-full text-sm p-2.5 focus:ring-indigo-500 focus:border-indigo-500 outline-none placeholder-slate-500"
                     placeholder="https://your-ngrok-url.ngrok-free.dev">
             </div>
+            <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Update this when your Ngrok or Colab URL changes.</p>
         </div>
 
         <!-- Upload Zone -->
@@ -169,13 +175,15 @@
 
                     <!-- Audio Biomarkers -->
                     <div class="grid grid-cols-2 gap-3 mt-2">
-                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
-                            <div class="text-xs text-slate-500 mb-1">Spectral Flatness</div>
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center group relative cursor-help">
+                            <div class="text-xs text-slate-500 mb-1 border-b border-slate-700/50 inline-block border-dotted pb-0.5">Spectral Flatness</div>
                             <div id="valFlatness" class="text-lg font-bold text-slate-200">--</div>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-xs text-slate-300 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">High spectral flatness often indicates synthetic or vocoder-generated voice patterns.</div>
                         </div>
-                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
-                            <div class="text-xs text-slate-500 mb-1">Phase Consistency</div>
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center group relative cursor-help">
+                            <div class="text-xs text-slate-500 mb-1 border-b border-slate-700/50 inline-block border-dotted pb-0.5">Phase Consistency</div>
                             <div id="valPhase" class="text-lg font-bold text-slate-200">--</div>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-xs text-slate-300 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">Low phase consistency suggests spliced, edited, or AI-cloned speech artifacts.</div>
                         </div>
                     </div>
                 </div>
