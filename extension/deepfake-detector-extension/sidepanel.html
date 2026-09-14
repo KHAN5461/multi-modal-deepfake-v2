@@ -143,24 +143,29 @@
             <!-- Row 2: Uploaded Image with Face Boxes + ELA Heatmap -->
             <div id="visionRow" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Uploaded Image with Face Annotations -->
-                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.2s">
+                <div class="glass rounded-xl p-4 slide-up flex flex-col" style="animation-delay:0.2s">
                     <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
                         <i class="fa-solid fa-crosshairs text-indigo-400 mr-1"></i> Face Detection
                     </div>
-                    <div class="face-canvas-wrap w-full">
-                        <img id="uploadedImg" src="" alt="uploaded" class="forensic-img hidden">
-                        <canvas id="faceCanvas"></canvas>
+                    <div class="relative w-full overflow-hidden rounded-lg group grow flex items-center justify-center bg-slate-900/50">
+                        <img id="uploadedImg" src="" alt="uploaded" class="w-full h-auto max-h-[300px] object-contain hidden">
+                        <div id="faceBoxesContainer" class="absolute inset-0 w-full h-full pointer-events-none"></div>
                     </div>
                     <div id="faceList" class="mt-3 space-y-1"></div>
                 </div>
 
-                <!-- ELA Heatmap -->
-                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.25s">
-                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
-                        <i class="fa-solid fa-fire text-red-400 mr-1"></i> ELA Heatmap
-                        <span class="text-slate-600 font-normal ml-1">(Error Level Analysis)</span>
+                <!-- ELA Heatmap Comparator -->
+                <div class="glass rounded-xl p-4 slide-up flex flex-col" style="animation-delay:0.25s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3 flex justify-between">
+                        <span><i class="fa-solid fa-fire text-red-400 mr-1"></i> ELA Heatmap</span>
+                        <span class="text-slate-500 font-normal ml-1 lowercase bg-slate-800 px-2 rounded">hover to compare</span>
                     </div>
-                    <img id="heatmapImg" src="" alt="heatmap" class="forensic-img hidden">
+                    <div class="relative w-full overflow-hidden rounded-lg cursor-crosshair group grow flex items-center justify-center bg-slate-900/50">
+                        <!-- Original Image (Bottom Layer) -->
+                        <img id="heatmapOrigImg" src="" alt="original" class="absolute w-full h-auto max-h-[300px] object-contain hidden">
+                        <!-- Heatmap Image (Top Layer - fades on hover) -->
+                        <img id="heatmapImg" src="" alt="heatmap" class="relative w-full h-auto max-h-[300px] object-contain hidden transition-opacity duration-300 group-hover:opacity-10">
+                    </div>
                     <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Bright regions indicate areas with different compression levels — a sign of editing.</p>
                 </div>
             </div>

@@ -271,6 +271,12 @@ function showResult(result, file) {
         const heatImg = document.getElementById('heatmapImg');
         heatImg.src = 'data:image/png;base64,' + result.heatmap;
         heatImg.classList.remove('hidden');
+
+        if (uploadedFileObjectURL) {
+            const heatOrig = document.getElementById('heatmapOrigImg');
+            heatOrig.src = uploadedFileObjectURL;
+            heatOrig.classList.remove('hidden');
+        }
     }
 
     // --- FFT ---
@@ -299,7 +305,7 @@ function showResult(result, file) {
         const upImg = document.getElementById('uploadedImg');
         upImg.src = uploadedFileObjectURL;
         upImg.classList.remove('hidden');
-        upImg.onload = () => drawFaces(upImg, result.faces || []);
+        upImg.onload = () => drawFacesDOM(upImg, result.faces || []);
     } else if (hasHeatmap) {
         const upImg = document.getElementById('uploadedImg');
         upImg.src = 'data:image/png;base64,' + result.heatmap;
@@ -312,13 +318,28 @@ function showResult(result, file) {
     if (hasFaces) {
         result.faces.forEach((f, i) => {
             const fakeProb = (f.score * 100).toFixed(1);
-            const fColor = f.score > 0.5 ? 'text-red-400' : 'text-emerald-400';
-            const fBg = f.score > 0.5 ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20';
-            faceList.innerHTML += `
-                <div class="flex items-center justify-between ${fBg} border rounded-lg px-3 py-2">
-                    <span class="text-xs font-semibold text-slate-300"><i class="fa-solid fa-face-viewfinder ${fColor} mr-1.5"></i>Face ${i + 1}</span>
-                    <span class="text-xs font-bold ${fColor}">${fakeProb}% ${f.score > 0.5 ? 'FAKE' : 'REAL'}</span>
-                </div>`;
+            const isFake = f.score > 0.5;
+            const fColor = isFake ? 'text-red-400' : 'text-emerald-400';
+            const fBg = isFake ? 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20';
+            
+            const el = document.createElement('div');
+            el.className = `flex items-center justify-between ${fBg} border rounded-lg px-3 py-2 cursor-pointer transition-colors duration-200`;
+            el.innerHTML = `
+                <span class="text-xs font-semibold text-slate-300"><i class="fa-solid fa-face-viewfinder ${fColor} mr-1.5"></i>Face ${i + 1}</span>
+                <span class="text-xs font-bold ${fColor}">${fakeProb}% ${isFake ? 'FAKE' : 'REAL'}</span>
+            `;
+            
+            // Hover interaction with face box
+            el.addEventListener('mouseenter', () => {
+                const box = document.getElementById(`face-box-${i}`);
+                if (box) box.classList.add('ring-4', 'ring-white', 'scale-[1.02]');
+            });
+            el.addEventListener('mouseleave', () => {
+                const box = document.getElementById(`face-box-${i}`);
+                if (box) box.classList.remove('ring-4', 'ring-white', 'scale-[1.02]');
+            });
+
+            faceList.appendChild(el);
         });
     }
 
@@ -338,32 +359,52 @@ function animateBar(barId, labelId, score, colorName) {
     }, 200);
 }
 
-function drawFaces(img, faces) {
-    const canvas = document.getElementById('faceCanvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function drawFacesDOM(img, faces) {
+    const container = document.getElementById('faceBoxesContainer');
+    container.innerHTML = '';
+    
+    // Calculate scale based on natural vs rendered size (object-fit: contain logic)
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    const visW = img.clientWidth;
+    const visH = img.clientHeight;
+
+    const scale = Math.min(visW / natW, visH / natH);
+    const actW = natW * scale;
+    const actH = natH * scale;
+    const offX = (visW - actW) / 2;
+    const offY = (visH - actH) / 2;
 
     faces.forEach((f, i) => {
         const [x, y, w, h] = f.bounding_box;
         const isFakeFace = f.score > 0.5;
-        ctx.strokeStyle = isFakeFace ? '#ef4444' : '#10b981';
-        ctx.lineWidth = Math.max(3, img.naturalWidth * 0.004);
-        ctx.setLineDash([]);
-        ctx.strokeRect(x, y, w, h);
+        const colorHex = isFakeFace ? '#ef4444' : '#10b981';
+        
+        const boxX = offX + (x * scale);
+        const boxY = offY + (y * scale);
+        const boxW = w * scale;
+        const boxH = h * scale;
 
-        const label = `Face ${i+1}: ${(f.score*100).toFixed(0)}%`;
-        ctx.font = `bold ${Math.max(14, img.naturalWidth * 0.025)}px Inter, sans-serif`;
-        const tm = ctx.measureText(label);
-        const lh = Math.max(20, img.naturalWidth * 0.035);
-        ctx.fillStyle = isFakeFace ? 'rgba(239,68,68,0.85)' : 'rgba(16,185,129,0.85)';
-        ctx.fillRect(x, y - lh - 4, tm.width + 12, lh + 4);
+        const box = document.createElement('div');
+        box.id = `face-box-${i}`;
+        box.className = 'absolute border-2 pointer-events-auto cursor-pointer transition-all duration-200';
+        box.style.left = `${boxX}px`;
+        box.style.top = `${boxY}px`;
+        box.style.width = `${boxW}px`;
+        box.style.height = `${boxH}px`;
+        box.style.borderColor = colorHex;
+        if (isFakeFace) {
+            box.classList.add('shadow-[0_0_15px_rgba(239,68,68,0.5)]');
+        }
 
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(label, x + 6, y - 8);
+        // Label
+        const label = document.createElement('div');
+        label.className = 'absolute -top-6 left-[-2px] px-2 py-0.5 text-[10px] font-bold text-white whitespace-nowrap rounded-t-md';
+        label.style.backgroundColor = colorHex;
+        label.textContent = `Face ${i+1}: ${(f.score*100).toFixed(0)}%`;
+        
+        box.appendChild(label);
+        container.appendChild(box);
     });
 }
 
@@ -423,6 +464,9 @@ function resetDashboard() {
     document.getElementById('analysisRow').classList.add('hidden');
     document.getElementById('timelineRow').classList.add('hidden');
     document.getElementById('heatmapImg').classList.add('hidden');
+    if (document.getElementById('heatmapOrigImg')) {
+        document.getElementById('heatmapOrigImg').classList.add('hidden');
+    }
     document.getElementById('fftImg').classList.add('hidden');
     document.getElementById('spectrogramImg').classList.add('hidden');
     document.getElementById('spectrogramPlaceholder').classList.add('hidden');
