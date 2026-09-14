@@ -1,4 +1,11 @@
-﻿import torch
+"""
+Cross-Modal Fusion Transformer for lip-sync deepfake detection.
+
+NOTE: This module is NOT currently used in the inference pipeline.
+The actual fusion logic in app.py uses a weighted average of vision and audio scores.
+This architecture is reserved for future training with paired audio-visual embeddings.
+"""
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 

@@ -364,16 +364,31 @@
 
             // --- Score Bars ---
             const vScore = result.breakdown?.visual_score ?? 0;
-            const aScore = result.breakdown?.audio_score ?? 0;
-            const lScore = result.breakdown?.lip_sync_score ?? 0;
+            const aScore = result.breakdown?.audio_score;
+            const lScore = result.breakdown?.lip_sync_score;
 
             animateBar('barVisual', 'barVisualLabel', vScore, 'indigo');
-            animateBar('barAudio', 'barAudioLabel', aScore, 'cyan');
-            animateBar('barLip', 'barLipLabel', lScore, 'amber');
+            
+            // Fix 13: Show "No Audio" cleanly when audio_score is null
+            if (aScore != null && aScore > 0) {
+                animateBar('barAudio', 'barAudioLabel', aScore, 'cyan');
+            } else {
+                document.getElementById('barAudioLabel').textContent = 'No Audio';
+                document.getElementById('barAudioLabel').style.color = '#64748b';
+                document.getElementById('barAudio').style.width = '0%';
+            }
+            
+            // Fix 12: Hide lip-sync bar entirely when null (not computed)
+            const lipSyncContainer = document.getElementById('barLip').parentElement.parentElement;
+            if (lScore != null) {
+                animateBar('barLip', 'barLipLabel', lScore, 'amber');
+            } else {
+                lipSyncContainer.style.display = 'none';
+            }
 
             // --- Audio Biomarkers ---
-            document.getElementById('valFlatness').textContent = result.audio_flatness != null ? result.audio_flatness.toFixed(4) : 'N/A';
-            document.getElementById('valPhase').textContent = result.audio_phase != null ? result.audio_phase.toFixed(2) : 'N/A';
+            document.getElementById('valFlatness').textContent = (aScore != null && result.audio_flatness != null) ? result.audio_flatness.toFixed(4) : 'N/A';
+            document.getElementById('valPhase').textContent = (aScore != null && result.audio_phase != null) ? result.audio_phase.toFixed(2) : 'N/A';
 
             // --- ELA Heatmap ---
             const hasHeatmap = result.heatmap && result.heatmap.length > 100;

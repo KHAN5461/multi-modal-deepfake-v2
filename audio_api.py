@@ -1,23 +1,29 @@
 import io
+import os
+import uuid
 import torch
 import librosa
 import librosa.display
 import numpy as np
 import ffmpeg
 import base64
+import matplotlib
+matplotlib.use('Agg')  # Thread-safe non-interactive backend
 import matplotlib.pyplot as plt
 from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
 
 def generate_spectrogram_b64(y, sr):
-    plt.figure(figsize=(10, 4))
+    """Thread-safe spectrogram generation using OO matplotlib API."""
+    fig, ax = plt.subplots(figsize=(10, 4))
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
     S_dB = librosa.power_to_db(S, ref=np.max)
-    librosa.display.specshow(S_dB, x_axis='time', y_axis='mel', sr=sr, fmax=8000)
-    plt.tight_layout()
+    librosa.display.specshow(S_dB, x_axis='time', y_axis='mel', sr=sr, fmax=8000, ax=ax)
+    ax.set_title('Mel Spectrogram (dB)')
+    fig.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    fig.savefig(buf, format='png')
     buf.seek(0)
-    plt.close()
+    plt.close(fig)
     return base64.b64encode(buf.read()).decode('utf-8')
 
 class AudioModel:
@@ -27,7 +33,6 @@ class AudioModel:
         self.model = None
         self.processor = None
         
-        import os
         if os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 1024 * 1024:
             print(f"Loading Audio Model from ONNX: {onnx_path}")
             try:
@@ -53,7 +58,7 @@ class AudioModel:
             print(f"Warning: Could not load audio model due to {e}. It will fallback to a default score.")
             self.model = None
 
-    def extract_audio(self, file_path: str, output_audio_path: str = "temp_audio.wav"):
+    def extract_audio(self, file_path: str, output_audio_path: str):
         try:
             (
                 ffmpeg
@@ -68,59 +73,72 @@ class AudioModel:
             return False
 
     def predict_audio(self, file_path: str):
-        audio_path = "temp_audio.wav"
-        if not self.extract_audio(file_path, audio_path):
-            return {"score": 0.0, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
-            
-        if self.processor is None or (self.onnx_session is None and self.model is None):
-            return {"score": 0.5, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
-            
-        waveform, sample_rate = librosa.load(audio_path, sr=16000)
+        # Fix 5: Use unique temp filename per request to prevent race conditions
+        audio_path = f"temp_audio_{uuid.uuid4().hex[:8]}.wav"
         
-        # 1. Voice Activity Detection (VAD) via RMS Energy
-        # Calculate RMS energy per frame
-        rms = librosa.feature.rms(y=waveform)[0]
-        # Normalize RMS and find active frames
-        rms_norm = rms / np.max(rms)
-        active_frames = np.where(rms_norm > 0.05)[0] # Threshold for speech
-        if len(active_frames) == 0:
-            print("No active speech detected in audio track!")
-            return {"score": 0.0, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
-            
-        # Reconstruct waveform only keeping active segments (Streaming Optimization)
-        # Convert frame indices back to sample indices
-        active_samples = librosa.frames_to_samples(active_frames)
-        # Just use the first 5 seconds of active speech to speed up inference
-        start_idx = active_samples[0]
-        end_idx = min(len(waveform), start_idx + 5 * sample_rate)
-        waveform = waveform[start_idx:end_idx]
-
-        
-        # Biomarkers
-        flatness = np.mean(librosa.feature.spectral_flatness(y=waveform))
-        centroid = np.mean(librosa.feature.spectral_centroid(y=waveform, sr=sample_rate))
-        phase = min(1.0, centroid / 4000.0) # Dummy normalized phase consistency
-        
-        spectrogram_b64 = generate_spectrogram_b64(waveform, sample_rate)
-        
-        inputs = self.processor(waveform, sampling_rate=sample_rate, return_tensors="pt", padding=True)
-        
-        if self.onnx_session is not None:
-            ort_inputs = {self.onnx_session.get_inputs()[0].name: inputs['input_values'].numpy()}
-            ort_outs = self.onnx_session.run(None, ort_inputs)
-            logits = torch.tensor(ort_outs[0])
-        else:
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self.model(**inputs).logits
+        try:
+            if not self.extract_audio(file_path, audio_path):
+                return {"score": 0.0, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
                 
-        probabilities = torch.softmax(logits, dim=-1)
-        fake_prob = probabilities[0, 1].item()
+            if self.processor is None or (self.onnx_session is None and self.model is None):
+                return {"score": 0.5, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
+                
+            waveform, sample_rate = librosa.load(audio_path, sr=16000)
             
-        return {
-            "score": fake_prob,
-            "flatness": float(flatness),
-            "phase": float(phase),
-            "spectrogram": spectrogram_b64
-        }
+            # 1. Voice Activity Detection (VAD) via RMS Energy
+            rms = librosa.feature.rms(y=waveform)[0]
+            
+            # Fix 6: Guard against division by zero for silent audio
+            rms_max = np.max(rms)
+            if rms_max == 0:
+                print("Audio track is completely silent!")
+                return {"score": 0.0, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
+            
+            rms_norm = rms / rms_max
+            active_frames = np.where(rms_norm > 0.05)[0]
+            if len(active_frames) == 0:
+                print("No active speech detected in audio track!")
+                return {"score": 0.0, "flatness": 0.0, "phase": 0.0, "spectrogram": None}
+                
+            # Use the first 5 seconds of active speech
+            active_samples = librosa.frames_to_samples(active_frames)
+            start_idx = active_samples[0]
+            end_idx = min(len(waveform), start_idx + 5 * sample_rate)
+            waveform = waveform[start_idx:end_idx]
+
+            # Biomarkers
+            flatness = np.mean(librosa.feature.spectral_flatness(y=waveform))
+            centroid = np.mean(librosa.feature.spectral_centroid(y=waveform, sr=sample_rate))
+            phase = min(1.0, centroid / 4000.0)
+            
+            spectrogram_b64 = generate_spectrogram_b64(waveform, sample_rate)
+            
+            inputs = self.processor(waveform, sampling_rate=sample_rate, return_tensors="pt", padding=True)
+            
+            if self.onnx_session is not None:
+                ort_inputs = {self.onnx_session.get_inputs()[0].name: inputs['input_values'].numpy()}
+                ort_outs = self.onnx_session.run(None, ort_inputs)
+                logits = torch.tensor(ort_outs[0])
+            else:
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                with torch.no_grad():
+                    logits = self.model(**inputs).logits
+                    
+            probabilities = torch.softmax(logits, dim=-1)
+            fake_prob = probabilities[0, 1].item()  # Index 1 = "spoof" (fake)
+                
+            return {
+                "score": fake_prob,
+                "flatness": float(flatness),
+                "phase": float(phase),
+                "spectrogram": spectrogram_b64
+            }
+        finally:
+            # Fix 5b: Always clean up temp audio file
+            try:
+                if os.path.exists(audio_path):
+                    os.remove(audio_path)
+            except:
+                pass
+
 audio_detector = AudioModel()

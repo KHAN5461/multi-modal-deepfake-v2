@@ -1,4 +1,4 @@
-﻿import torch
+import torch
 import numpy as np
 import cv2
 import base64
@@ -92,30 +92,40 @@ class FaceExtractor:
                 if self.detector:
                     detected_faces = self.detector.detect(frame)
                 
+                frame_crops = []
                 if detected_faces and len(detected_faces) > 0:
-                    x1, y1, x2, y2 = map(int, detected_faces[0].bbox[:4])
-                    h_img, w_img, _ = frame.shape
-                    
-                    w, h = x2 - x1, y2 - y1
-                    pad_x = int(w * 0.5)
-                    pad_y = int(h * 0.5)
-                    
-                    crop_x1 = max(0, x1 - pad_x)
-                    crop_y1 = max(0, y1 - pad_y)
-                    crop_x2 = min(w_img, x2 + pad_x)
-                    crop_y2 = min(h_img, y2 + pad_y)
-                    
-                    x, y, w, h = crop_x1, crop_y1, crop_x2 - crop_x1, crop_y2 - crop_y1
-                else:
+                    # Process ALL detected faces, not just the first one
+                    for det_face in detected_faces:
+                        x1, y1, x2, y2 = map(int, det_face.bbox[:4])
+                        h_img, w_img, _ = frame.shape
+                        
+                        w, h = x2 - x1, y2 - y1
+                        pad_x = int(w * 0.5)
+                        pad_y = int(h * 0.5)
+                        
+                        crop_x1 = max(0, x1 - pad_x)
+                        crop_y1 = max(0, y1 - pad_y)
+                        crop_x2 = min(w_img, x2 + pad_x)
+                        crop_y2 = min(h_img, y2 + pad_y)
+                        
+                        cw, ch = crop_x2 - crop_x1, crop_y2 - crop_y1
+                        if cw > 0 and ch > 0:
+                            cropped = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                            if cropped.size > 0:
+                                frame_crops.append(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
+                
+                if not frame_crops:
+                    # Fallback center crop
                     h_img, w_img = frame.shape[:2]
                     x, y = w_img // 4, h_img // 4
                     w, h = w_img // 2, h_img // 2
-                    
-                if w > 0 and h > 0:
-                    cropped = frame[y:y+h, x:x+w]
-                    if cropped.size > 0:
-                        cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB)
-                        frames.append((cropped_rgb, frame))
+                    if w > 0 and h > 0:
+                        cropped = frame[y:y+h, x:x+w]
+                        if cropped.size > 0:
+                            frame_crops.append(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
+                
+                for crop in frame_crops:
+                    frames.append((crop, frame))
             frame_idx += 1
         cap.release()
         return frames
@@ -175,10 +185,12 @@ class VisionModel:
             
         # Calculate Localized ELA Variance & Biometrics
         for i, face_img in enumerate(faces_list):
+            # Fix: face_img is RGB, but cv2.imencode expects BGR
+            face_bgr = cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR)
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-            _, encoded = cv2.imencode('.jpg', face_img, encode_param)
-            decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
-            diff = cv2.absdiff(face_img, decoded)
+            _, encoded = cv2.imencode('.jpg', face_bgr, encode_param)
+            decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)  # returns BGR
+            diff = cv2.absdiff(face_bgr, decoded)
             gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
             variance = np.var(gray_diff)
             ela_prob = (variance - 10.0) / 70.0
@@ -186,13 +198,13 @@ class VisionModel:
             
             bio_prob = 0.5
             if mp_face_mesh:
-                results = mp_face_mesh.process(face_img)
+                results = mp_face_mesh.process(face_img)  # FaceMesh expects RGB — correct
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0].landmark
                     left_eye_w = abs(landmarks[33].x - landmarks[133].x)
                     right_eye_w = abs(landmarks[362].x - landmarks[263].x)
                     symmetry_diff = abs(left_eye_w - right_eye_w)
-                    bio_prob = min(symmetry_diff / 0.015, 1.0)
+                    bio_prob = min(symmetry_diff / 0.03, 1.0)  # Relaxed threshold
             fake_probs_bio[i] = bio_prob
             
         if self.model_vit:
@@ -213,8 +225,14 @@ class VisionModel:
             
         ensemble_probs = []
         for i in range(len(faces_list)):
-            avg_prob = (fake_probs_vit[i] + fake_probs_cnn[i] + fake_probs_ela[i] + fake_probs_bio[i]) / 4.0
-            ensemble_probs.append(avg_prob)
+            # Weighted ensemble: neural networks get 80% weight, heuristics get 20%
+            weighted_prob = (
+                0.40 * fake_probs_vit[i] +
+                0.40 * fake_probs_cnn[i] +
+                0.10 * fake_probs_ela[i] +
+                0.10 * fake_probs_bio[i]
+            )
+            ensemble_probs.append(weighted_prob)
             
         return ensemble_probs
 
@@ -229,7 +247,7 @@ class VisionModel:
             fake_probs = self.process_tensors(faces_list)
             
             return {
-                "score": float(np.mean(fake_probs)),
+                "score": float(max(fake_probs)) if fake_probs else 0.0,
                 "timeline": fake_probs,
                 "heatmap": generate_heatmap_b64(full_frame),
                 "fft": generate_fft_b64(full_frame),
