@@ -145,16 +145,19 @@ class VisionModel:
             self.model_vit_id = "dima806/deepfake_vs_real_image_detection"
             
         self.model_cnn_id = "prithivMLmods/Deep-Fake-Detector-Model"
+        self.model_gan_id = "umm-maybe/AI-image-detector"
         
         self.model_vit = None
         self.processor_vit = None
         self.model_cnn = None
         self.processor_cnn = None
+        self.model_gan = None
+        self.processor_gan = None
         
         try:
             self.processor_vit = AutoImageProcessor.from_pretrained(self.model_vit_id)
             self.model_vit = AutoModelForImageClassification.from_pretrained(self.model_vit_id).to(self.device).eval()
-            print("Loaded Ensemble Model A (ViT)")
+            print("Loaded Ensemble Model A (ViT - Deepfake/Swap)")
         except Exception as e:
             print(f"Warning: Could not load ViT model: {e}")
             
@@ -165,6 +168,13 @@ class VisionModel:
         except Exception as e:
             print(f"Warning: Could not load CNN model: {e}")
             
+        try:
+            self.processor_gan = AutoImageProcessor.from_pretrained(self.model_gan_id)
+            self.model_gan = AutoModelForImageClassification.from_pretrained(self.model_gan_id).to(self.device).eval()
+            print("Loaded Ensemble Model C (ViT - GAN/Synthetic)")
+        except Exception as e:
+            print(f"Warning: Could not load GAN model: {e}")
+            
         self.face_extractor = FaceExtractor()
 
     def process_tensors(self, faces_list):
@@ -172,20 +182,22 @@ class VisionModel:
         
         fake_probs_vit = [0.5] * len(faces_list)
         fake_probs_cnn = [0.5] * len(faces_list)
+        fake_probs_gan = [0.5] * len(faces_list)
         fake_probs_ela = [0.5] * len(faces_list)
         fake_probs_bio = [0.5] * len(faces_list)
+        fake_probs_fft = [0.5] * len(faces_list)
         
         # Phase 4: Biometric Landmark Analysis
         mp_face_mesh = None
         try:
             import mediapipe as mp
-            mp_face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1)
+            mp_face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
         except ImportError:
             print("Warning: mediapipe not installed. Skipping Biometric checks.")
             
-        # Calculate Localized ELA Variance & Biometrics
+        # Calculate Localized ELA Variance, FFT & Biometrics
         for i, face_img in enumerate(faces_list):
-            # Fix: face_img is RGB, but cv2.imencode expects BGR
+            # ELA
             face_bgr = cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR)
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
             _, encoded = cv2.imencode('.jpg', face_bgr, encode_param)
@@ -196,6 +208,19 @@ class VisionModel:
             ela_prob = (variance - 10.0) / 70.0
             fake_probs_ela[i] = max(0.0, min(1.0, ela_prob))
             
+            # FFT (High Frequency Energy)
+            f = np.fft.fft2(cv2.cvtColor(face_img, cv2.COLOR_RGB2GRAY))
+            fshift = np.fft.fftshift(f)
+            magnitude_spectrum = 20 * np.log(np.abs(fshift) + 1)
+            h, w = magnitude_spectrum.shape
+            cy, cx = h // 2, w // 2
+            r = min(h, w) // 4
+            y, x = np.ogrid[:h, :w]
+            mask = (x - cx)**2 + (y - cy)**2 > r**2
+            high_freq_energy = np.mean(magnitude_spectrum[mask]) if np.any(mask) else 0
+            fft_prob = (high_freq_energy - 100) / 150.0
+            fake_probs_fft[i] = max(0.0, min(1.0, fft_prob))
+            
             bio_prob = 0.5
             if mp_face_mesh:
                 results = mp_face_mesh.process(face_img)  # FaceMesh expects RGB — correct
@@ -205,6 +230,19 @@ class VisionModel:
                     right_eye_w = abs(landmarks[362].x - landmarks[263].x)
                     symmetry_diff = abs(left_eye_w - right_eye_w)
                     bio_prob = min(symmetry_diff / 0.03, 1.0)  # Relaxed threshold
+                    
+                    # Iris tracking for StyleGAN anomalies
+                    if len(landmarks) > 468:
+                        left_iris_w = abs(landmarks[474].x - landmarks[476].x)
+                        left_iris_h = abs(landmarks[475].y - landmarks[477].y)
+                        right_iris_w = abs(landmarks[469].x - landmarks[471].x)
+                        right_iris_h = abs(landmarks[470].y - landmarks[472].y)
+                        
+                        left_ar = left_iris_w / (left_iris_h + 1e-6)
+                        right_ar = right_iris_w / (right_iris_h + 1e-6)
+                        ar_diff = abs(left_ar - 1.0) + abs(right_ar - 1.0)
+                        iris_prob = min(ar_diff / 0.5, 1.0)
+                        bio_prob = max(bio_prob, iris_prob)
             fake_probs_bio[i] = bio_prob
             
         if self.model_vit:
@@ -223,14 +261,25 @@ class VisionModel:
             probs = torch.softmax(outputs, dim=1)
             fake_probs_cnn = probs[:, 0].cpu().numpy().tolist()
             
+        if self.model_gan:
+            inputs = self.processor_gan(images=faces_list, return_tensors="pt")
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            with torch.no_grad():
+                outputs = self.model_gan(**inputs).logits
+            probs = torch.softmax(outputs, dim=1)
+            fake_probs_gan = probs[:, 0].cpu().numpy().tolist()  # Assuming 0 is artificial
+            
         ensemble_probs = []
         for i in range(len(faces_list)):
-            # Weighted ensemble: neural networks get 80% weight, heuristics get 20%
+            # Max-Activation for Neural Nets: if any NN strongly detects fake, trust it
+            nn_score = max(fake_probs_vit[i], fake_probs_cnn[i], fake_probs_gan[i])
+            
+            # Weighted ensemble: neural networks 80%, heuristics 20%
             weighted_prob = (
-                0.40 * fake_probs_vit[i] +
-                0.40 * fake_probs_cnn[i] +
+                0.80 * nn_score +
                 0.10 * fake_probs_ela[i] +
-                0.10 * fake_probs_bio[i]
+                0.05 * fake_probs_bio[i] +
+                0.05 * fake_probs_fft[i]
             )
             ensemble_probs.append(weighted_prob)
             
