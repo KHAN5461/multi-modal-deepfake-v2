@@ -1,285 +1,254 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Forensic Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #0f172a; color: #e2e8f0; }
 
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Veritas AI - Browser Extension</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "on-primary-fixed-variant": "#005f9b",
-            "surface": "#fcf9f9",
-            "primary-fixed-dim": "#b6d7ff",
-            "on-secondary-container": "#005b60",
-            "surface-bright": "#fcf9f9",
-            "on-secondary": "#e6fdff",
-            "on-tertiary": "#e8ffe7",
-            "on-surface-variant": "#5e5f61",
-            "on-surface": "#313234",
-            "background": "#fcf9f9",
-            "on-background": "#313234",
-            "on-tertiary-fixed-variant": "#00662e",
-            "on-primary-container": "#00558b",
-            "on-error": "#fff7f6",
-            "tertiary-fixed-dim": "#33ec7b",
-            "outline-variant": "#b2b1b4",
-            "secondary-container": "#6ff6ff",
-            "inverse-primary": "#44a3f5",
-            "surface-dim": "#dadadc",
-            "surface-container-high": "#e9e8e9",
-            "primary-fixed": "#d0e4ff",
-            "secondary": "#006a6f",
-            "surface-container-lowest": "#ffffff",
-            "error": "#9f403d",
-            "on-primary-fixed": "#00426e",
-            "secondary-dim": "#005d62",
-            "on-secondary-fixed-variant": "#00666b",
-            "secondary-fixed": "#6ff6ff",
-            "inverse-surface": "#0e0e0f",
-            "tertiary": "#006e33",
-            "surface-container-low": "#f5f3f4",
-            "primary-container": "#d0e4ff",
-            "error-dim": "#4e0309",
-            "on-error-container": "#752121",
-            "primary-dim": "#00568c",
-            "tertiary-dim": "#00612b",
-            "surface-variant": "#e3e2e4",
-            "error-container": "#fe8983",
-            "on-tertiary-container": "#005b29",
-            "secondary-fixed-dim": "#00ebf6",
-            "on-tertiary-fixed": "#00461e",
-            "primary": "#00629f",
-            "on-secondary-fixed": "#00474b",
-            "on-primary": "#f5f8ff",
-            "tertiary-fixed": "#49fb87",
-            "surface-container": "#efedef",
-            "inverse-on-surface": "#9e9c9d",
-            "surface-container-highest": "#e3e2e4",
-            "surface-tint": "#00629f",
-            "tertiary-container": "#49fb87",
-            "outline": "#7a7a7d"
-          },
-          "borderRadius": {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "full": "9999px"
-          },
-          "spacing": {
-            "xs": "4px",
-            "md": "16px",
-            "sm": "8px",
-            "margin": "24px",
-            "xl": "32px",
-            "base": "8px",
-            "lg": "24px",
-            "gutter": "16px"
-          },
-          "fontFamily": {
-            "label-md": [
-              "Public Sans"
-            ],
-            "body-md": [
-              "Inter"
-            ],
-            "headline-md": [
-              "Inter"
-            ],
-            "headline-lg": [
-              "Inter"
-            ]
-          },
-          "fontSize": {
-            "label-md": [
-              "14px",
-              {
-                "lineHeight": "20px",
-                "fontWeight": "500"
-              }
-            ],
-            "body-md": [
-              "16px",
-              {
-                "lineHeight": "24px",
-                "fontWeight": "400"
-              }
-            ],
-            "headline-md": [
-              "24px",
-              {
-                "lineHeight": "32px",
-                "fontWeight": "600"
-              }
-            ],
-            "headline-lg": [
-              "32px",
-              {
-                "lineHeight": "40px",
-                "fontWeight": "700"
-              }
-            ]
-          }
-        },
-      },
-    }
-  </script>
-<style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
-    }
-    body {
-      background-color: #ffffff;
-      color: #313234;
-      font-family: 'Inter', sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    ::-webkit-scrollbar {
-      width: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #efedef;
-      border-radius: 9999px;
-    }
-  </style>
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(71, 85, 105, 0.4); }
+        .glass-light { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(71, 85, 105, 0.3); }
+
+        .drop-zone { border: 2px dashed #475569; transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+
+        /* Animated ring gauge */
+        .ring-gauge { position: relative; width: 200px; height: 200px; }
+        .ring-gauge svg { transform: rotate(-90deg); }
+        .ring-gauge .track { stroke: #1e293b; fill: none; stroke-width: 12; }
+        .ring-gauge .fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1.5s ease, stroke 0.5s ease; }
+        .ring-gauge .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Animated score bars */
+        .score-bar-fill { transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+
+        /* Face overlay canvas */
+        .face-canvas-wrap { position: relative; display: inline-block; }
+        .face-canvas-wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* Glow effects */
+        .glow-red { box-shadow: 0 0 30px rgba(239,68,68,0.15); }
+        .glow-green { box-shadow: 0 0 30px rgba(16,185,129,0.15); }
+        .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.1); }
+
+        .fade-in { animation: fadeIn 0.6s ease forwards; opacity: 0; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .slide-up { animation: slideUp 0.5s ease forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* Preview thumbnail */
+        #previewThumb { max-height: 120px; border-radius: 8px; object-fit: cover; }
+
+        /* Hide scrollbar on forensic images */
+        .forensic-img { border-radius: 8px; width: 100%; height: auto; image-rendering: auto; }
+    </style>
 </head>
-<body class="bg-surface-container-lowest min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
-<!-- Browser Extension Panel Container (Standard 400px width aesthetic) -->
-<div class="w-full max-w-[420px] min-h-screen bg-surface-container-lowest flex flex-col relative pb-24 select-none">
-<!-- TopAppBar Shared Component Executed -->
-<header class="flex justify-between items-center w-full px-md py-sm sticky top-0 z-50 bg-surface dark:bg-surface shadow-sm">
-<div class="flex items-center gap-xs">
-<span class="material-symbols-outlined text-primary text-[20px]" data-icon="verified_user">verified_user</span>
-<div class="flex items-center gap-2">
-<span class="font-headline-md text-headline-md tracking-tight text-on-surface dark:text-on-surface">Veritas AI</span>
-<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-[11px] font-medium leading-none">
-<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-            Online
-          </span>
-</div>
-</div>
-<div class="flex items-center">
-<button class="p-1 rounded-full text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container transition-colors duration-150 active:scale-95">
-<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
-</button>
-</div>
-</header>
-<!-- Context & Target Metadata Banner -->
-<div class="px-lg pt-lg pb-sm">
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-outline text-[16px]" data-icon="public">public</span>
-<span class="font-label-md text-label-md font-medium text-on-surface">wire.reuters.com</span>
-</div>
-<div class="flex items-center gap-1 font-label-md text-label-md text-on-surface-variant text-[12px]">
-<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
-<span>2 Media Elements</span>
-</div>
-</div>
-</div>
-<!-- Action Section: Floating Pill Button -->
-<div class="px-lg py-sm flex justify-center">
-<button class="group w-full py-3 px-base rounded-full bg-on-surface text-surface-container-lowest font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary transition-all duration-200 shadow-sm active:scale-95">
-<span class="material-symbols-outlined text-[18px] group-hover:rotate-45 transition-transform duration-300" data-icon="radar">radar</span>
-<span class="tracking-wide">Scan Page</span>
-</button>
-</div>
-<!-- Inspection Results Container -->
-<main class="px-lg py-md flex flex-col gap-lg flex-1">
-<!-- Result Card 1: Synthetic Alert -->
-<article class="p-md rounded-xl bg-surface-container-low transition-all duration-200 hover:bg-surface-container">
-<div class="flex items-start justify-between">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="face">face</span>
-<h2 class="font-headline-md text-[15px] font-semibold text-on-surface leading-snug">Primary Speaker Face</h2>
-</div>
-<span class="px-2 py-0.5 rounded-full bg-error text-on-error font-label-md text-[11px] font-medium tracking-tight">
-            Synthetic
-          </span>
-</div>
-<div class="mt-md flex items-baseline justify-between">
-<div class="flex items-baseline gap-1">
-<span class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">94.2</span>
-<span class="font-label-md text-label-md text-on-surface-variant">%</span>
-</div>
-<span class="font-label-md text-[12px] text-on-surface-variant">00:04:18</span>
-</div>
-<p class="mt-xs font-body-md text-[13px] text-on-surface-variant leading-relaxed">
-          ViT facial boundary anomalies &amp; temporal flicker detected across 32 frames.
-        </p>
-<!-- Micro signal indicator -->
-<div class="mt-3 w-full bg-surface-container-highest rounded-full h-1 overflow-hidden">
-<div class="bg-error h-full rounded-full" style="width: 94.2%;"></div>
-</div>
-</article>
-<!-- Result Card 2: Authentic Confirmation -->
-<article class="p-md rounded-xl bg-surface-container-low transition-all duration-200 hover:bg-surface-container">
-<div class="flex items-start justify-between">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="graphic_eq">graphic_eq</span>
-<h2 class="font-headline-md text-[15px] font-semibold text-on-surface leading-snug">Audio Track</h2>
-</div>
-<span class="px-2 py-0.5 rounded-full bg-tertiary text-on-tertiary font-label-md text-[11px] font-medium tracking-tight">
-            Authentic
-          </span>
-</div>
-<div class="mt-md flex items-baseline justify-between">
-<div class="flex items-baseline gap-1">
-<span class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">98.6</span>
-<span class="font-label-md text-label-md text-on-surface-variant">%</span>
-</div>
-<span class="font-label-md text-[12px] text-on-surface-variant">Continuous</span>
-</div>
-<p class="mt-xs font-body-md text-[13px] text-on-surface-variant leading-relaxed">
-          Natural acoustic room reverberation verified against vocal tract resonance.
-        </p>
-<!-- Micro signal indicator -->
-<div class="mt-3 w-full bg-surface-container-highest rounded-full h-1 overflow-hidden">
-<div class="bg-tertiary h-full rounded-full" style="width: 98.6%;"></div>
-</div>
-</article>
-<!-- Waiting / Background Stream State -->
-<section class="mt-sm p-lg rounded-xl border border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center">
-<div class="w-24 h-24 flex items-center justify-center mb-sm">
-<img alt="Veritas AI media shield scanning radar" class="w-20 h-20 object-contain pointer-events-none opacity-90" src="https://lh3.googleusercontent.com/aida/AEtjO1WDnEgJ0qC3dTtNXee_yTFtFURRMHrpeEFevIImX6-0kQqhnkbMPeilDg6bpBgcGDOgGluLWIteLeew1L0Yowv5q7ylkb5_2vfuJxW2NsghIdWwNL-_taafVRF77ULNPqIIIs4Y7h-FzcSeFEij7umz2U-nm84cxzBh3fA1NF3CFzLOmF-j_0hNfM_w8T-2R-ROFh4v2w_Y11nST40L9uSOrB79N69zm28zE66DbYCBaY7EtJqT94y8HPGe"/>
-</div>
-<p class="font-body-md text-body-md text-on-surface font-medium">Waiting for media stream</p>
-<p class="font-label-md text-[12px] text-on-surface-variant mt-xs">Real-time neural verification activates upon video playback.</p>
-<!-- Ambient Toggle -->
-<div class="mt-md flex items-center gap-base">
-<span class="font-label-md text-[12px] text-on-surface-variant">Auto-inspection</span>
-<label class="relative inline-flex items-center cursor-pointer">
-<input checked="" class="sr-only peer" type="checkbox"/>
-<div class="w-9 h-5 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface-container-lowest after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-</label>
-</div>
-</section>
-</main>
-<!-- BottomNavBar Shared Component Executed -->
-<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-md py-sm bg-surface dark:bg-surface shadow-sm max-w-[420px] left-1/2 -translate-x-1/2">
-<!-- Nav Item 1: Scan (Active) -->
-<button class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
-<span class="material-symbols-outlined text-[20px]" data-icon="radar">radar</span>
-<span class="text-[11px] mt-0.5 font-bold">Scan</span>
-</button>
-<!-- Nav Item 2: History (Inactive) -->
-<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
-<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
-<span class="text-[11px] mt-0.5">History</span>
-</button>
-<!-- Nav Item 3: Reports (Inactive) -->
-<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150 active:scale-95 py-1 px-3">
-<span class="material-symbols-outlined text-[20px]" data-icon="shield_with_heart">shield_with_heart</span>
-<span class="text-[11px] mt-0.5">Reports</span>
-</button>
-</nav>
-</div>
-</body></html>
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
+
+    <!-- Header -->
+    <header class="text-center mb-8 w-full max-w-4xl fade-in">
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">
+            <i class="fa-solid fa-shield-halved text-indigo-400 mr-2"></i>
+            Deepfake <span class="text-indigo-400">Forensic</span> Dashboard
+        </h1>
+        <p class="text-slate-400 text-sm">AI-powered multi-modal analysis &middot; Vision &middot; Audio &middot; Cross-Modal Fusion</p>
+    </header>
+
+    <main class="w-full max-w-4xl space-y-6">
+
+        <!-- API URL Config -->
+        <div class="glass rounded-xl p-4">
+            <label for="apiUrl" class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Backend API URL</label>
+            <div class="flex gap-2">
+                <span class="inline-flex items-center px-3 text-sm text-slate-400 bg-slate-800/60 border border-slate-600 rounded-l-lg">
+                    <i class="fa-solid fa-link"></i>
+                </span>
+                <input type="url" id="apiUrl" value="https://upside-shower-handling.ngrok-free.dev"
+                    class="rounded-r-lg bg-slate-800/60 border border-slate-600 text-slate-200 block flex-1 min-w-0 w-full text-sm p-2.5 focus:ring-indigo-500 focus:border-indigo-500 outline-none placeholder-slate-500"
+                    placeholder="https://your-ngrok-url.ngrok-free.dev">
+            </div>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="glass rounded-xl overflow-hidden">
+            <div id="dropZone" class="drop-zone p-10 text-center cursor-pointer m-4 rounded-xl bg-slate-800/30">
+                <input type="file" id="fileInput" class="hidden" accept="image/*,video/*,audio/*">
+                <div id="uploadPrompt">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 mb-3"></i>
+                    <h3 class="text-lg font-bold text-slate-300 mb-1">Drop media here or click to browse</h3>
+                    <p class="text-slate-500 text-xs">Supports MP4, MP3, JPG, PNG, WEBP &middot; Max 50MB</p>
+                </div>
+                <div id="uploadPreview" class="hidden items-center gap-4 justify-center">
+                    <img id="previewThumb" src="" alt="preview" class="hidden">
+                    <div class="text-left">
+                        <div id="previewName" class="text-sm font-semibold text-slate-200"></div>
+                        <div id="previewSize" class="text-xs text-slate-400"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingContainer" class="hidden glass rounded-xl p-8 text-center slide-up">
+            <div class="inline-block mb-4">
+                <div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <h3 id="loadingText" class="text-lg font-bold text-slate-200 mb-2">Uploading media...</h3>
+            <div class="w-full max-w-md mx-auto bg-slate-700/50 rounded-full h-2 mb-2 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full score-bar-fill" style="width: 10%"></div>
+            </div>
+            <p id="loadingSubtext" class="text-slate-400 text-xs">Connecting to backend</p>
+        </div>
+
+        <!-- ==================== RESULTS DASHBOARD ==================== -->
+        <div id="resultsDashboard" class="hidden space-y-6">
+
+            <!-- Row 1: Verdict Ring + Score Bars -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Verdict Ring -->
+                <div id="verdictCard" class="glass rounded-xl p-6 flex flex-col items-center justify-center slide-up">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-4">Overall Verdict</div>
+                    <div class="ring-gauge mb-4">
+                        <svg viewBox="0 0 200 200" width="200" height="200">
+                            <circle class="track" cx="100" cy="100" r="85"/>
+                            <circle id="ringFill" class="fill" cx="100" cy="100" r="85"
+                                stroke-dasharray="534" stroke-dashoffset="534" stroke="#6366f1"/>
+                        </svg>
+                        <div class="label">
+                            <div id="verdictPercent" class="text-4xl font-black">--%</div>
+                            <div id="verdictTag" class="text-sm font-bold uppercase tracking-wider mt-1">Analyzing</div>
+                        </div>
+                    </div>
+                    <div id="verdictLabel" class="text-sm text-slate-400 font-medium text-center"></div>
+                </div>
+
+                <!-- Score Breakdown Bars -->
+                <div class="glass rounded-xl p-6 flex flex-col justify-center slide-up" style="animation-delay:0.1s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-5">Forensic Breakdown</div>
+
+                    <!-- Visual -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-eye text-indigo-400 mr-1.5"></i>Visual Manipulation</span>
+                            <span id="barVisualLabel" class="text-sm font-bold text-indigo-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barVisual" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-indigo-500 to-purple-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-waveform text-cyan-400 mr-1.5"></i>Audio Forgery</span>
+                            <span id="barAudioLabel" class="text-sm font-bold text-cyan-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barAudio" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-cyan-500 to-blue-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lip Sync -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1.5">
+                            <span class="text-sm font-semibold text-slate-300"><i class="fa-solid fa-lips text-amber-400 mr-1.5"></i>Lip-Sync Coherence</span>
+                            <span id="barLipLabel" class="text-sm font-bold text-amber-400">--</span>
+                        </div>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 overflow-hidden">
+                            <div id="barLip" class="h-2.5 rounded-full score-bar-fill bg-gradient-to-r from-amber-500 to-orange-500" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Biomarkers -->
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div class="text-xs text-slate-500 mb-1">Spectral Flatness</div>
+                            <div id="valFlatness" class="text-lg font-bold text-slate-200">--</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div class="text-xs text-slate-500 mb-1">Phase Consistency</div>
+                            <div id="valPhase" class="text-lg font-bold text-slate-200">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Uploaded Image with Face Boxes + ELA Heatmap -->
+            <div id="visionRow" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Uploaded Image with Face Annotations -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.2s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-crosshairs text-indigo-400 mr-1"></i> Face Detection
+                    </div>
+                    <div class="face-canvas-wrap w-full">
+                        <img id="uploadedImg" src="" alt="uploaded" class="forensic-img hidden">
+                        <canvas id="faceCanvas"></canvas>
+                    </div>
+                    <div id="faceList" class="mt-3 space-y-1"></div>
+                </div>
+
+                <!-- ELA Heatmap -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.25s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-fire text-red-400 mr-1"></i> ELA Heatmap
+                        <span class="text-slate-600 font-normal ml-1">(Error Level Analysis)</span>
+                    </div>
+                    <img id="heatmapImg" src="" alt="heatmap" class="forensic-img hidden">
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Bright regions indicate areas with different compression levels — a sign of editing.</p>
+                </div>
+            </div>
+
+            <!-- Row 3: FFT + Spectrogram -->
+            <div id="analysisRow" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- FFT -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.3s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-wave-square text-purple-400 mr-1"></i> FFT Frequency Spectrum
+                    </div>
+                    <img id="fftImg" src="" alt="fft" class="forensic-img hidden">
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Frequency artifacts reveal GAN-generated image patterns invisible to the eye.</p>
+                </div>
+
+                <!-- Audio Spectrogram -->
+                <div class="glass rounded-xl p-4 slide-up" style="animation-delay:0.35s">
+                    <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                        <i class="fa-solid fa-signal text-cyan-400 mr-1"></i> Audio Spectrogram
+                    </div>
+                    <img id="spectrogramImg" src="" alt="spectrogram" class="forensic-img hidden">
+                    <p id="spectrogramPlaceholder" class="text-sm text-slate-500 text-center py-8 hidden">
+                        <i class="fa-solid fa-volume-xmark text-2xl mb-2 block text-slate-600"></i>
+                        No audio track detected
+                    </p>
+                    <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Mel-scaled spectrogram reveals unnatural vocal patterns in cloned speech.</p>
+                </div>
+            </div>
+
+            <!-- Row 4: Video Timeline (only for videos) -->
+            <div id="timelineRow" class="hidden glass rounded-xl p-4 slide-up" style="animation-delay:0.4s">
+                <div class="text-xs uppercase tracking-widest font-bold text-slate-500 mb-3">
+                    <i class="fa-solid fa-timeline text-emerald-400 mr-1"></i> Frame-by-Frame Analysis
+                </div>
+                <canvas id="timelineChart" height="100"></canvas>
+                <p class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Per-second fake probability across the video. Spikes indicate manipulated segments.</p>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="text-center pt-2 pb-8">
+                <button id="resetBtn" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold transition">
+                    <i class="fa-solid fa-rotate-left mr-1.5"></i> Analyze Another File
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="sidepanel.js"></script>
+</body>
+</html>
